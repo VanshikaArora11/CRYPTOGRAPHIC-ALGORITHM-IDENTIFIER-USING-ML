@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Algorithm Identifier</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.6.2/css/bootstrap.min.css">
+    <script>
+        // Function to display the pop-up with the prediction result
+        function showPopup(result) {
+            const popup = document.getElementById('resultPopup');
+            const resultText = document.getElementById('popupText');
+            resultText.innerText = `Predicted Algorithm: ${result}`;
+            popup.style.display = 'block';
+        }
+
+        // Function to close the pop-up and clear the input box
+        function closePopup() {
+            const popup = document.getElementById('resultPopup');
+            popup.style.display = 'none';
+            document.getElementById('cipher_text').value = '';
+        }
+
+        // Function to display an error message in a pop-up
+        function showError(message) {
+            const popup = document.getElementById('resultPopup');
+            const resultText = document.getElementById('popupText');
+            resultText.innerText = `Error: ${message}`;
+            popup.style.display = 'block';
+        }
+
+        // Function to handle form submission and fetch the prediction
+        async function submitForm(event) {
+            event.preventDefault();
+            const cipherText = document.getElementById('cipher_text').value;
+
+            // Check if the input is valid
+            if (!cipherText || cipherText.trim().length === 0) {
+                showError('Cipher text cannot be empty.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ cipher_text: cipherText }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.algorithm) {
+                        showPopup(data.algorithm);
+                    } else {
+                        showError('Unable to identify the algorithm. Please try again.');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    showError(errorData.error || 'Server error occurred.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An unexpected error occurred while fetching the prediction.');
+            }
+        }
+    </script>
+    <style>
+        /* Pop-up styling */
+        #resultPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        #popupOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mt-5">Cipher Algorithm Identifier</h1>
+        <form id="cipherForm" class="mt-4" onsubmit="submitForm(event)">
+            <div class="form-group">
+                <label for="cipher_text">Enter Cipher Text</label>
+                <textarea class="form-control" id="cipher_text" name="cipher_text" rows="5" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Identify Algorithm</button>
+        </form>
+    </div>
+
+    <!-- Pop-up Overlay -->
+    <div id="popupOverlay"></div>
+
+    <!-- Pop-up Window -->
+    <div id="resultPopup">
+        <p id="popupText"></p>
+        <button class="btn btn-danger" onclick="closePopup()">Close</button>
+    </div>
+</body>
+</html>
